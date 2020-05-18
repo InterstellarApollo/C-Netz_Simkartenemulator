@@ -4,7 +4,7 @@
 #define GEBZ  9
 #define TELB  12
 
-#define TELB_S
+#define TELB_S 10
 
 void setup() {
     byte rufn00 = 0b01100010;     // Rufnummer Teil 1
@@ -34,7 +34,8 @@ void setup() {
     EEPROM.update(GEBZ + 1, 0b00000000);
     EEPROM.update(GEBZ + 2, 0b00000011);
 
-    for(int i = 0; i < 24; i++){              // Telefonbuch leer füllen
+    EEPROM.update(TELB, TELB_S);
+    for(int i = 1; i < 24; i++){              // Telefonbuch leer füllen
       EEPROM.update(TELB + i, 0b11111111);    //
     }                                         //
 }
