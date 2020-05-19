@@ -18,7 +18,7 @@ https://en.wikipedia.org/wiki/Smart_card#/media/File:SmartCardPinout.svg
 <br>
 Dokumentation für das Kommunikationsprotokoll: http://download.eversberg.eu/mobilfunk/C-Netz-Dokus/FTZ%20171%20TR%2060%20-%20Anhang%201%20Berechtigungskarte%20als%20Prozessorkarte.pdf
 <br>
-bzw. andere ABC(usw.)-Netz relevante Infos: http://osmocom-analog.eversberg.eu
+bzw. andere ABC(usw.)-Netz relevante Infos von Osmocom Analog: http://osmocom-analog.eversberg.eu
 <br>
 <br>
 PS: Das Programm funktioniert bisher wahrscheinlich nur mit C-Netz Telefonen,

@@ -3,6 +3,7 @@
 #include "BefehlsParser.h"
 
 static byte BefehlsParser::commandLen = 0;
+boolean BefehlsParser::gesperrt = true;
 
 static Command *BefehlsParser::decodeCommand(byte *data, byte blen){
   boolean i = (*(data + 0) & 0b10000000) > 0;
@@ -44,7 +45,6 @@ static Command *BefehlsParser::getResponse(Command *c){
  
     switch(c->getClass_CCRC()){
     case CNTR:
-      //F1
       if(instruction == 0xF1){
         generalCommand = true;
         selectApplication(response, data);
@@ -57,6 +57,10 @@ static Command *BefehlsParser::getResponse(Command *c){
     case READ:
       break;
     case EXEC:
+      if(instruction == 0xF1){
+        generalCommand = true;
+        checkPin(response, data, c->getDataLen());
+      }
       break;
     case AUTO:
       break;
@@ -69,6 +73,28 @@ static Command *BefehlsParser::getResponse(Command *c){
     }
   }
   return response;
+}
+
+static void BefehlsParser::checkPin(Command *c, byte *data, byte pinlen){
+  byte ccrc = 0;
+  byte asta = 0;
+  byte asts = 0;
+
+  ccrc = 0b10000000;     
+  asta = 0b0;           
+  asts = 0b0;
+
+  Serial.print("Pin: ");
+  
+  for(byte i = 0; i < pinlen; i++){
+    Serial.write(*(data + i));
+  }
+  Serial.println();
+  
+  gesperrt = false;
+  
+  c->setInstruction(asts<<4 + asta);
+  c->setClass_CCRC(ccrc);
 }
 
 static void BefehlsParser::selectApplication(Command *c, byte *data){
@@ -84,7 +110,7 @@ static void BefehlsParser::selectApplication(Command *c, byte *data){
   if(c1 == '0' && c2 == '0' && c3 == '3'){
     Chipkarte::selectedApplication = CNETZ;
     // Nur CCRC wird ausgewertet
-    ccrc = 0b10000100;     
+    ccrc = 0b10000100 | gesperrt;     
     asta = 0b0;           
     asts = 0b0;           
     c->setData(0, 0);

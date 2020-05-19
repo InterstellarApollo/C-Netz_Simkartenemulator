@@ -3,12 +3,7 @@
 
 class UBlockParser{
   public:
-    // Sollte test gesetzt werden, wird ein Fehler eingeschleust. Zum REJ- Befehle und Antwort testen. 
-    boolean test = false;
-    // Sollte test gesetzt werden, wird ein REJ- Befehl gesendet. Zum REJ- Befehle und Antwort testen. 
-    boolean test2 = false;
-  
-    UBlockParser(byte *data, byte blen, boolean ptest, boolean ptest2);
+    UBlockParser(byte *data, byte blen);
     byte *getData();
     byte getDataLength();
 

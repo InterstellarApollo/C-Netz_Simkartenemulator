@@ -9,6 +9,7 @@ boolean r3;
 boolean generalError = false;
 boolean ident = true;         // Weil Antwort
 
+
 static void CNetz::runInstruction(byte cla, byte ins, byte *data, Command *c){
   boolean isInstructionAvailable = false;
   byte asts = 0;
@@ -97,8 +98,8 @@ static void CNetz::writeRufn(Command *c, byte *data){
     } 
     Serial.println("Name: " + kontaktname);
     Serial.println("Nummer: " + kontaktrufnummer);
-    for(int i = 0; i < 24; i++){
-      EEPROM.update(TELB + 24*angeforderterRufnummernsatz + i, *(data + i));
+    for(int i = 1; i < 25; i++){
+      EEPROM.update(TELB + 24*angeforderterRufnummernsatz + i - 1, *(data + i));
     } 
     setTBEntry(angeforderterRufnummernsatz); 
   } else {
@@ -113,26 +114,22 @@ static void CNetz::readEbd(Command *c, byte *data){
   byte dlen = 9;
   byte daten[dlen];
 
-  daten[0] = EEPROM.read(EBD + 0);
-  daten[1] = EEPROM.read(EBD + 1);
-  daten[2] = EEPROM.read(EBD + 2);
-  daten[3] = EEPROM.read(EBD + 3);
-  daten[4] = EEPROM.read(EBD + 4);
-  daten[5] = EEPROM.read(EBD + 5);
-  daten[6] = EEPROM.read(EBD + 6);
-  daten[7] = EEPROM.read(EBD + 7);
-  daten[8] = EEPROM.read(EBD + 8);
+  for(int i = 0; i < dlen; i++){
+    daten[i] = EEPROM.read(EBD + 1);
+  }
   
   c->setData(&daten[0], dlen);
 }
 
 static void CNetz::setTBEntry(byte toSet){
-  //EEPROM.update(TELB + i, *(data + i));
+  // Der Header steht an Position 0, der erste Eintrag ist somit der mit der Nummer 1
   toSet--;
   Serial.println("Nummer: " + (String) toSet);
+
+  // Im Header muss die {pos}-te stelle im {block}-ten Byte verändert werden. 
   byte block = toSet / 8;
   byte pos = toSet % 8;
-  Serial.println("Stelle " + (String) pos + " in Block " + (String) (block + 1));
+  Serial.println("Stelle " + (String) pos + " in Byte " + (String) (block + 1));
 
   byte phoneBlock = EEPROM.read(TELB + block + 1);
   Serial.println("Gelesen: " + (String) phoneBlock);
@@ -143,7 +140,7 @@ static void CNetz::setTBEntry(byte toSet){
 }
 
 static void CNetz::clearTBEntry(byte toClear){
-  //EEPROM.update(TELB + i, *(data + i));
+  // Der Header steht an Position 0, der erste Eintrag ist somit der mit der Nummer 1
   toClear--;
   Serial.println("Nummer: " + (String) toClear);
   byte block = toClear / 8;

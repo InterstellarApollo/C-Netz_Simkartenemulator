@@ -15,13 +15,7 @@ byte atr[] = {
 byte uBlock[255];
 byte temp_array[255];
 
-boolean firstloop = true;
-
-UBlockParser *uBlockParser;
-ICLParser *iclParser;
-
 void setup() {
-
   // IO wird mit Serial1 RX & TX verbunden 
   
   pinMode(43, OUTPUT);    // Buchse 1 (Masse)
@@ -41,6 +35,9 @@ void setup() {
 }
 
 void loop() {
+  UBlockParser *uBlockParser;
+  ICLParser *iclParser;
+
   digitalWrite(4, LOW);  
   
   while(!(Serial1.available() > 0) && digitalRead(37) != LOW){
@@ -50,6 +47,7 @@ void loop() {
   if(digitalRead(37) == LOW){
     // Die Chipkarte soll geresettet werden
     UBlockParser::zaehlerReset();
+    BefehlsParser::gesperrt = true;
     waitToResetCard();    
   } else {
   }
@@ -70,7 +68,7 @@ void loop() {
   if(!timeout){
     digitalWrite(4, HIGH); 
     //49 9 0 56
-    uBlockParser = new UBlockParser(&uBlock[0], dlen, false, false);
+    uBlockParser = new UBlockParser(&uBlock[0], dlen);
     
     byte *infFeld = uBlockParser->getData();
     byte infFeldLen = uBlockParser->getDataLength();
@@ -110,6 +108,9 @@ void loop() {
     // Fehler, Telefon sollte den Block nach einem Timeout wiederholen
     Serial.println("Timeout");
   }
+  
+  delete(uBlockParser);
+  delete(iclParser);
 }
 
 
@@ -132,7 +133,6 @@ byte readChar(){
 }
 
 void waitToResetCard(){
-  Serial.println("-----------------------------");
   Serial.println("Karte wird geresettet");
   while(digitalRead(37) == LOW){
   }

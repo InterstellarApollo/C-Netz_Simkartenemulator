@@ -17,7 +17,6 @@
 
 class CNetz{
   public:
-    boolean gesperrt;
     static void runInstruction(byte cla, byte ins, byte *data, Command *c);
     
     static void readRufn(Command *c, byte *data);

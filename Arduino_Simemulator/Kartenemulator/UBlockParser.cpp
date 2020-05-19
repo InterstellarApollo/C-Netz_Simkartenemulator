@@ -9,11 +9,7 @@ static byte UBlockParser::embedded_data_backup[255];
 static byte UBlockParser::datenlaenge_backup;
 
 
-UBlockParser::UBlockParser(byte *data, byte blen, boolean ptest, boolean ptest2){
-  // Boolean, um REJ- Befehl zu provozieren (--> Checksumme kaputtmachen) oder REJ- Befehl zu senden. 
-  test2 = ptest2;
-  test = ptest;
-  
+UBlockParser::UBlockParser(byte *data, byte blen){
   byte berechnete_kontrollsumme = 0;
   byte adressByte;
   for(byte i = 0; i < blen - 1; i++){
@@ -42,11 +38,13 @@ UBlockParser::UBlockParser(byte *data, byte blen, boolean ptest, boolean ptest2)
     Serial.println("Block empfangen. ");
     empfaengerIstCC = true;
 
-    if(((steuerfeld & 0b00010001) == 0b00000000)            && !test2){
+    if(((steuerfeld & 0b00010001) == 0b00000000)){
       UBlockParser::empfangsfolgezaehler++;
+      
+      // Der Empfangsfolgezaehler zaehlt von 0-7
       empfangsfolgezaehler = empfangsfolgezaehler & 0b0111;
       iCommand = true;
-    } else if (((steuerfeld & 0b00001001) == 0b00001001)    && !test2){
+    } else if (((steuerfeld & 0b00001001) == 0b00001001)){
       Serial.println("REJ- Befehl! ");
       if(sendefolgezaehler == steuerfeld >> 5){
         Serial.println("Zaehler stimmen ueberein. ");
@@ -55,7 +53,7 @@ UBlockParser::UBlockParser(byte *data, byte blen, boolean ptest, boolean ptest2)
         sendefolgezaehler = steuerfeld >> 5;
       }
       rejCommand = true;
-    } else if((steuerfeld == 0b11101111)                   && !test2){
+    } else if((steuerfeld == 0b11101111)){
       Serial.println("RES- Befehl! ");
       resCommand = true;
     } else {
@@ -102,11 +100,11 @@ byte UBlockParser::encodeREJ(byte *data, byte dataLen, byte *tempArray){
   byte destAdress = 3;
   byte sourceAdress = CCADRESS;
   
-  byte adress = destAdress + (sourceAdress << 4);
+  byte adressFeld = destAdress + (sourceAdress << 4);
   byte sfeld = (sendefolgezaehler << 5) + 0b000001001;
   byte dlen = 0;
   
-  *(data + 0) = adress;
+  *(data + 0) = adressFeld;
   *(data + 1) = sfeld;
   *(data + 2) = dlen;
   
@@ -144,7 +142,7 @@ byte UBlockParser::encodeI(byte *data, byte dataLen, byte *tempArray){
 
   Serial.println("Zu sendender Block von: " + (String) sourceAdress + " nach: " + (String) + destAdress );
   
-  byte adress = destAdress + (sourceAdress << 4);
+  byte adressfeld = destAdress + (sourceAdress << 4);
   //EVZ um 5 nach links, SVZ um 1 nach links. Sprich: SSS0EEE0
   byte sfeld = (empfangsfolgezaehler << 5) + (sendefolgezaehler << 1);
   
@@ -153,7 +151,7 @@ byte UBlockParser::encodeI(byte *data, byte dataLen, byte *tempArray){
   for(byte i = 0; i < dataLen; i++){
     *(tempArray + i) = *(data + i);
   }
-  *(data + 0) = adress;
+  *(data + 0) = adressfeld;
   *(data + 1) = sfeld;
   *(data + 2) = dlen;
   for(byte i = 0; i < dataLen; i++){
@@ -170,15 +168,8 @@ byte UBlockParser::encodeI(byte *data, byte dataLen, byte *tempArray){
   for(byte i = 0; i < datenlaenge_backup; i++){
     embedded_data_backup[i] = *(data + i);
   }
-  Serial.println();
   UBlockParser::sendefolgezaehler++;
   UBlockParser::sendefolgezaehler = UBlockParser::sendefolgezaehler & 0b0111;
-
-  // Wenn test gesetzt ist wird ein Fehler eingeschleust. 
-  if(test){
-    *(data + 5) = *(data + 5) + 42;
-  }
-  
   
   return dataLen + 4;
 }

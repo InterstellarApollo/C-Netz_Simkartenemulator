@@ -5,6 +5,8 @@
 
 class BefehlsParser{
   public:
+    static boolean gesperrt;
+    
     static Command *decodeCommand(byte *data, byte dlen);
     
     static byte *encodeCommand(Command *c, byte *byteArray);
@@ -15,4 +17,5 @@ class BefehlsParser{
     static byte commandLen;
 
     static void selectApplication(Command *c, byte *data);
+    static void checkPin(Command *c, byte *data, byte pinlen);
 };
