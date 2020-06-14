@@ -7,10 +7,18 @@ boolean r1;
 boolean r2;
 boolean r3;
 boolean generalError = false;
-boolean ident = true;         // Weil Antwort
+// Bei einer Antwort ist Ident- Bit = true
+boolean ident = true;
 
 
 static void CNetz::runInstruction(byte cla, byte ins, byte *data, Command *c){
+  pinNotOk = false;
+  abfzNull = false;
+  aprcValid = true;
+  generalError = false;
+  // Bei einer Antwort ist Ident- Bit = true
+  ident = true;         
+  
   boolean isInstructionAvailable = false;
   byte asts = 0;
 
@@ -39,14 +47,21 @@ static void CNetz::runInstruction(byte cla, byte ins, byte *data, Command *c){
         break;
       }
       break;
-    case EXEC:
+    case EXEC:      
+        switch(ins){
+        case EH_GEBZ:
+          ehGebz(c, data);
+          isInstructionAvailable = true;
+        break;
+      }
       break;
     case AUTO:
       break;
   }
 
   byte ccrc = 0b00000000;
-  
+
+  // Fehler senden, wenn ein ungueltiger Befehl gefordert wird. 
   generalError = !isInstructionAvailable;
   
   ccrc = ccrc | (pinNotOk<<0) | (abfzNull<<1) | (aprcValid<<2) | (r1<<3) | (r2<<4)| (r3<<5) | (generalError<<6) | (ident<<7);
@@ -115,10 +130,16 @@ static void CNetz::readEbd(Command *c, byte *data){
   byte daten[dlen];
 
   for(int i = 0; i < dlen; i++){
-    daten[i] = EEPROM.read(EBD + 1);
+    daten[i] = EEPROM.read(EBD + i);
   }
   
   c->setData(&daten[0], dlen);
+}
+
+static void CNetz::ehGebz(Command *c, byte *data){
+  Serial.println("Gebuehrenzaehler erhoehen um " + (String) (*data + 0) + " Einheiten");
+  
+  c->setData(0, 0);
 }
 
 static void CNetz::setTBEntry(byte toSet){

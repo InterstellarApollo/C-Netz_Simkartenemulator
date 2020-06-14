@@ -13,12 +13,21 @@ void setup() {
 
     byte sc00 = 0b01110001;       // Sicherungscode Teil 1
     byte sc01 = 0b10000100;       // Sicherungscode Teil 2
+
+    
     
     byte kkshs00 = 0b01100000;    // Kartenkennung (3b) und Sicherheitsschlüssel (5b) Teil 1
     byte kkshs01 = 0b00000000;    // Sicherheitsschlüssel Teil 2
     
     byte ws00 = 0b11111111;       // Wartungsschlüssel Teil 1
     byte ws01 = 0b11111111;       // Wartungsschlüssel Teil 2
+
+    // Werte für den Wartungsmodus beim Siemens C5: 
+    //byte kkshs00 = 0b01100011;    // Kartenkennung (3b) und Sicherheitsschlüssel (5b) Teil 1
+    //byte kkshs01 = 0b10000100;    // Sicherheitsschlüssel Teil 2
+    
+    //byte ws00 = 0b00000011;       // Wartungsschlüssel Teil 1
+    //byte ws01 = 0b11101000;       // Wartungsschlüssel Teil 2
 
     EEPROM.update(EBD + 0, rufn00);
     EEPROM.update(EBD + 1, rufn01);

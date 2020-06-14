@@ -26,4 +26,6 @@ class CNetz{
     static void clearTBEntry(byte toClear);
     
     static void readEbd(Command *c, byte *data);
+
+    static void ehGebz(Command *c, byte *data);
 };

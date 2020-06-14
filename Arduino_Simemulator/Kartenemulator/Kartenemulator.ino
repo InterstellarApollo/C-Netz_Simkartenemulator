@@ -15,8 +15,11 @@ byte atr[] = {
 byte uBlock[255];
 byte temp_array[255];
 
+UBlockParser *uBlockParser;
+ICLParser *iclParser;
+
 void setup() {
-  // IO wird mit Serial1 RX & TX verbunden 
+  // IO- Pin der Karte wird mit Serial1 RX & TX verbunden 
   
   pinMode(43, OUTPUT);    // Buchse 1 (Masse)
   pinMode(41, OUTPUT);    // Buchse 2 (Masse)         <--- Massepin (Karte)
@@ -28,24 +31,27 @@ void setup() {
   pinMode(4, OUTPUT);     // Anzeige-LED              <--- LED- Ausgang
   digitalWrite(4, HIGH);  //
    
-  Serial.begin(230400);   // Hoehere Baud-Rate, dass kein Timeout auftritt
+  Serial.begin(230400);   // Hoehere Baud-Rate, dass kein Timeout auftritt (Fuer Debug- Nachrichten)
 
   // Zur Kommunikation mit Chipkarte (9600 Baud, Even parity, 8 Datenbits, 2 Stoppbits)
   Serial1.begin(9600, SERIAL_8E2);
 }
 
 void loop() {
-  UBlockParser *uBlockParser;
-  ICLParser *iclParser;
-
   digitalWrite(4, LOW);  
-  
+
+  unsigned long millisBegin = millis();
   while(!(Serial1.available() > 0) && digitalRead(37) != LOW){
-    // Hier passiert nix, kein Reset, keine Daten. 
+    // Hier passiert nix, kein Reset, keine Daten.
+
+    if(millis() - millisBegin > 1000){
+      Serial.println("Warten"); 
+      millisBegin += 1000;
+    }
   }
   
   if(digitalRead(37) == LOW){
-    // Die Chipkarte soll geresettet werden
+    // Die Chipkarte soll geresettet werden, hier alles eintragen, was geresettet werden soll. 
     UBlockParser::zaehlerReset();
     BefehlsParser::gesperrt = true;
     waitToResetCard();    
@@ -66,54 +72,45 @@ void loop() {
   }
 
   if(!timeout){
-    digitalWrite(4, HIGH); 
-    //49 9 0 56
-    uBlockParser = new UBlockParser(&uBlock[0], dlen);
-    
-    byte *infFeld = uBlockParser->getData();
-    byte infFeldLen = uBlockParser->getDataLength();
-  
-    for(byte i = 0; i < infFeldLen + 4; i++){
+    digitalWrite(4, HIGH);
+
+    for(byte i = 0; i < dlen; i++){
       Serial.print((String) uBlock[i] + ", ");
     }
     Serial.println();
-
-    if(infFeldLen != 0){
-      iclParser = new ICLParser(infFeld, infFeldLen);
-      byte *apdu = iclParser->getData();
-      byte apduLen = iclParser->getDataLength();
     
-      Command *c = BefehlsParser::decodeCommand(apdu, apduLen);
-      Serial.println(c->getCommandInfo());
-      Command *r = BefehlsParser::getResponse(c);
-      BefehlsParser::encodeCommand(r, uBlock);
-    
-      apduLen = BefehlsParser::getCommandLen();
-      byte iclLen = iclParser->encodeData(&uBlock[0], apduLen, &temp_array[0]);
-      byte uBlockLen = uBlockParser->encodeData(&uBlock[0], iclLen, &temp_array[0]);
+    uBlockParser = new UBlockParser(&uBlock[0], dlen);
 
-      sendBlock(&uBlock[0], uBlockLen);
+    byte *infFeld = uBlockParser->getData();
+    byte infFeldLen = uBlockParser->getDataLength();
     
-      delete(c);
-      delete(r);
-    } else {
-      // Wahrscheinlich REJ- Kommando oder RES der Zaehler
-      Serial.println("Leeres Kommando oder verworfene Daten. ");
-      byte uBlockLen = uBlockParser->encodeData(&uBlock[0], 0, &temp_array[0]);
-      sendBlock(&uBlock[0], uBlockLen);
-    }
+    iclParser = new ICLParser(infFeld, infFeldLen);
+    byte *apdu = iclParser->getData();
+    byte apduLen = iclParser->getDataLength();
+    
+    Command *c = BefehlsParser::decodeCommand(apdu, apduLen);
+    Command *r = BefehlsParser::getResponse(c);
+      
+    BefehlsParser::encodeCommand(r, uBlock);
+    apduLen = BefehlsParser::getCommandLen();
+    byte iclLen = iclParser->encodeData(&uBlock[0], apduLen, &temp_array[0]);
+    byte uBlockLen = uBlockParser->encodeData(&uBlock[0], iclLen, &temp_array[0]);
 
-  Serial.println("---------");
+    sendBlock(&uBlock[0], uBlockLen);
+      
+    delete(c);
+    delete(r);
+    
+    Serial.println("---------");
+
+    
+    delete uBlockParser;
+    delete iclParser;
   } else {
     // Fehler, Telefon sollte den Block nach einem Timeout wiederholen
     Serial.println("Timeout");
   }
-  
-  delete(uBlockParser);
-  delete(iclParser);
 }
-
-
 
 boolean waitWithTimeout(int timeout){
   int timeoutCounter = 0;
@@ -136,14 +133,14 @@ void waitToResetCard(){
   Serial.println("Karte wird geresettet");
   while(digitalRead(37) == LOW){
   }
-  Serial.println("Reset beendet");
-  Serial.println("Bereit, um Daten zu senden. ");
+  Serial.println("Karte aktiviert");
 
   // Sende ATR:
   Serial1.write(atr, ATRLEN);
 
   Serial.println("ATR gesendet");
-  
+
+  // Alles was ueber TX1 gesendet wird, wird auch wieder empfangen, da RX und TX an demselben Kabel haengen. 
   for(int i = 0; i < ATRLEN; i++){
     boolean timeout = waitWithTimeout(20);
     if(!timeout){

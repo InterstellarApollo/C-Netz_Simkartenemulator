@@ -140,6 +140,7 @@ byte UBlockParser::encodeI(byte *data, byte dataLen, byte *tempArray){
   byte destAdress = sender;
   byte sourceAdress = empfaenger;
 
+  Serial.println();
   Serial.println("Zu sendender Block von: " + (String) sourceAdress + " nach: " + (String) + destAdress );
   
   byte adressfeld = destAdress + (sourceAdress << 4);

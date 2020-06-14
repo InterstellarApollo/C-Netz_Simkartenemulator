@@ -3,12 +3,21 @@
 #include "ICLParser.h"
 
 ICLParser::ICLParser(byte *data, byte blen){
-  // Das icb1 steht direkt an erster stelle
-  icb1 = *(data);
-  // Gefolgt von den Daten der höheren Schicht
-  embedded_data = (data + 1);
   // Datenlänge der Nutzdaten ist die gesamtlänge - 1 für das icb1. icb2 & chaining wird noch nicht unterstützt. 
-  datenlaenge = blen - 1;
+  // Sollte die Datenlaenge 1 sein, wird wahrscheinlich eine Funktion verlangt, die noch nicht implementiert wurde....
+  if(blen > 1){
+    // Das icb1 steht direkt an erster Stelle
+    icb1 = *(data + 0);
+    // Gefolgt von den Daten der höheren Schicht
+    embedded_data = (data + 1);
+    datenlaenge = blen - 1;
+  } else if(datenlaenge == 1){
+    Serial.println("ICL- Kommando (nicht unterstuetzt...)");
+  }else {
+    embedded_data = NULL;
+    icb1 = 0b00000000;
+    datenlaenge = 0;
+  }
 }
 
 byte *ICLParser::getData(){

@@ -3,29 +3,38 @@
 #include "BefehlsParser.h"
 
 static byte BefehlsParser::commandLen = 0;
+// Ob die Karte gesperrt wird, wird Kartenemulator festgelegt! (erster Tab / .ino Datei)
 boolean BefehlsParser::gesperrt = true;
 
 static Command *BefehlsParser::decodeCommand(byte *data, byte blen){
-  boolean i = (*(data + 0) & 0b10000000) > 0;
-  byte cla = *(data + 0) & 0b01111111;
-  byte ins = *(data + 1);
-  byte dlen = *(data + 2);
-  byte *datenblock = (data + 3);
-  Command *c = new Command(i, cla, ins, datenblock, dlen);
-  return c;
+  if(blen != 0){
+    boolean i = (*(data + 0) & 0b10000000) > 0;
+    byte cla = *(data + 0) & 0b01111111;
+    byte ins = *(data + 1);
+    byte dlen = *(data + 2);
+    byte *datenblock = (data + 3);
+    Command *c = new Command(i, cla, ins, datenblock, dlen);
+    return c;
+  } else {
+    return NULL;
+  }
 }
 
 static byte *BefehlsParser::encodeCommand(Command *c, byte byteArray[]){
-  byte *s7data = c->getData();
+  if(c != NULL){
+    byte *s7data = c->getData();
   
-  byteArray[0] = c->getClass_CCRC();
-  byteArray[1] = c->getInstruction();
-  byteArray[2] = c->getDataLen();
+    byteArray[0] = c->getClass_CCRC();
+    byteArray[1] = c->getInstruction();
+    byteArray[2] = c->getDataLen();
 
-  for(byte i = 0; i < c->getDataLen(); i++){
-    byteArray[3+i] = *(s7data + i);
+    for(byte i = 0; i < c->getDataLen(); i++){
+      byteArray[3+i] = *(s7data + i);
+    }
+    commandLen = 3+c->getDataLen();
+  } else {
+    commandLen = 0;
   }
-  commandLen = 3+c->getDataLen();
 }
 
 static byte BefehlsParser::getCommandLen(){
@@ -33,6 +42,7 @@ static byte BefehlsParser::getCommandLen(){
 }
 
 static Command *BefehlsParser::getResponse(Command *c){
+  if(c != NULL){
     // Command(boolean pI, byte pCla, byte pIns, byte *pData, byte pDlen);
     Command *response = new Command();
 
@@ -44,35 +54,38 @@ static Command *BefehlsParser::getResponse(Command *c){
     boolean generalCommand = false;
  
     switch(c->getClass_CCRC()){
-    case CNTR:
-      if(instruction == 0xF1){
-        generalCommand = true;
-        selectApplication(response, data);
-      }
-      break;
-    case STAT: 
-      break;
-    case WRTE:
-      break;
-    case READ:
-      break;
-    case EXEC:
-      if(instruction == 0xF1){
-        generalCommand = true;
-        checkPin(response, data, c->getDataLen());
-      }
-      break;
-    case AUTO:
-      break;
-  }
-
-  if(!generalCommand){
-    if(Chipkarte::selectedApplication == CNETZ){
-      Serial.println("C-Netz Befehl: " + (String) instruction + ", Befehlsklasse: " + (String) insClass);
-      CNetz::runInstruction(insClass, instruction, data, response);
+      case CNTR:
+        if(instruction == 0xF1){
+          generalCommand = true;
+          selectApplication(response, data);
+        }
+        break;
+      case STAT: 
+        break;
+      case WRTE:
+        break;
+      case READ:
+        break;
+      case EXEC:
+        if(instruction == 0xF1){
+          generalCommand = true;
+          checkPin(response, data, c->getDataLen());
+        }
+        break;
+      case AUTO:
+        break;
     }
+
+    if(!generalCommand){
+      if(Chipkarte::selectedApplication == CNETZ){
+        Serial.println("C-Netz Befehl: " + (String) instruction + ", Befehlsklasse: " + (String) insClass);
+        CNetz::runInstruction(insClass, instruction, data, response);
+      }
+    }
+    return response;
+  } else {
+    return NULL;
   }
-  return response;
 }
 
 static void BefehlsParser::checkPin(Command *c, byte *data, byte pinlen){
@@ -117,7 +130,7 @@ static void BefehlsParser::selectApplication(Command *c, byte *data){
   } else if(c1 == '0' && c2 == '0' && c3 == '4'){
     Chipkarte::selectedApplication = RFV;
     // Nur CCRC wird ausgewertet
-    ccrc = 0b10000100;     
+    ccrc = 0b10000100;
     asta = 0b0;           
     asts = 0b0;    
   } else {
